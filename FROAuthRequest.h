@@ -8,15 +8,10 @@
 
 #import <Foundation/Foundation.h>
 #import "ASIFormDataRequest.h"
-//#import "OAHMAC_SHA1SignatureProvider.h"
-//#import "OAMutableURLRequest.h"
 
 #import "OAuthConsumer.h"
 
-#define DEBUG 0
-
-@class OAHMAC_SHA1SignatureProvider;
-@class OAToken;
+#define DEBUG 1
 
 @interface FROAuthRequest : ASIFormDataRequest {
 	
@@ -26,7 +21,7 @@
 	
 	id<OASignatureProviding> _signatureProvider;
 	
-	NSString	*_timestamp, *_nonce, *_realm;
+	NSString	*_timestamp, *_nonce, *_realm, *_requestTokenURL;
 	
 	NSDictionary	*_userInfo;
 
@@ -34,10 +29,10 @@
 
 @property (nonatomic, retain) OAToken		*token;
 @property (nonatomic, retain) OAConsumer	*consumer;
-
-@property (nonatomic, retain) NSDictionary	*_userInfo;
-
 @property (nonatomic, retain) id			signatureProvider;
+
+@property (nonatomic, retain) NSDictionary	*userInfo;
+@property (nonatomic, retain) NSString		*requestTokenURL;
 
 +(id) requestWithURL: (NSURL *)newURL  
 			consumer: (OAConsumer*) consumer
@@ -50,13 +45,6 @@
 			   token: (OAToken*) token
 			   realm: (NSString*) realm
    signatureProvider: (id<OASignatureProviding>) provider;
-
-+(OAToken*) _requestTokenFromProvider:(NSURL*) requestURL 
-					 withConsumer:(OAConsumer*) pConsumer 
-						forObject:(id) pDelegate;
-
-+(OAToken*) _didRequestToken:(FROAuthRequest*) pRequest 
-				   forObject:pDelegate;
 
 +(OAToken*) _accessTokenWithRequestToken:(OAToken*) pToken 
 							fromProvider:(NSURL*) accessURL 

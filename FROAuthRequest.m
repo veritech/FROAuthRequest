@@ -18,6 +18,10 @@
 - (NSString *)timestamp;
 - (NSString *)nonce;
 
+-(BOOL) _startAsynchronousWithoutAuthentication;
+-(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest;
+-(void) _authenticationDidFail:(FROAuthRequest*) aRequest;
+
 @end
 
 @interface ASIFormDataRequest(private)
@@ -32,6 +36,7 @@
 @synthesize consumer = _consumer;
 @synthesize signatureProvider = _signatureProvider;
 @synthesize userInfo = _userInfo;
+@synthesize requestTokenURL = _requestTokenURL;
 
 #pragma mark -
 #pragma mark Factory Methods
@@ -63,9 +68,10 @@
 		
 		//Alter this after the request has been created;
 		//[self setRequestMethod:@"POST"];
+		_userInfo = nil;
+		_requestTokenURL = nil;
 		
 		[self setConsumer: consumer];
-
 				
 		if( token == nil ){
 			self.token = [[OAToken alloc] init];
@@ -97,23 +103,146 @@
 
 #pragma mark -
 #pragma mark Start Methods
-//Overload start ASync
+/*
+ *	Overload start ASync
+ *
+ *	Decide whether we need to authenticate or not
+ */
 -(void) startAsynchronous{
+	
+	//If we dont have a token go and get one
+	if( ![self hasAuthenticatedToken] ){
+		
+		FROAuthRequest		*authenticationRequest;
+		
+		authenticationRequest = [FROAuthRequest _accessTokenFromProvider: [NSURL URLWithString:@"http://twitter.com/oauth/request_token"] 
+															WithUsername: @"veritech"//[self username] 
+																password: @"robotech"//[self password]
+															 andConsumer: [self consumer]	
+		 ];
+		
+		[authenticationRequest setUserInfo:[NSDictionary dictionaryWithObject:self forKey:@"request"]];
+		
+		[authenticationRequest setDelegate:self];
+		
+		//Set the callbacks
+		[authenticationRequest setDidFinishSelector:@selector(_authenticationDidSucceed:)];
+		[authenticationRequest setDidFailSelector:@selector(_authenticationDidFail:)];
+		
+		//Call special method that skips this check
+		[authenticationRequest _startAsynchronousWithoutAuthentication];
+	}
+	else{
+		//We might want to load the token before this point
+		[self _startAsynchronousWithoutAuthentication];
+	}
+	
+}
 
+/*
+ *	Token Management
+ *	Do we have an authenticated token
+ *
+ */
+-(BOOL) hasAuthenticatedToken{
+	
+	OAToken	*authenticatedToken;
+	
+	NSLog(@"[FROAuthRequest hasAuthenticateToken] user: %@",[self username]);
+	
+	//Get the authenticatedToken
+	authenticatedToken = [[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:@"twitter" 
+																				prefix:[self username]
+	];
+
+	//Validate
+	if( authenticatedToken ){
+		
+		NSLog(@"token key: %@", [authenticatedToken key]);
+		NSLog(@"token secret: %@", [authenticatedToken secret]);
+		//Set the token
+		[self setToken: authenticatedToken];
+		return YES;
+	}
+	else{
+		return NO;
+	}
+}
+
+/*
+ *	Special method to skip authentication check
+ */
+-(BOOL) _startAsynchronousWithoutAuthentication{
 	[self prepare];
-
+	
 	[super startAsynchronous];
+}
+
+/*
+ *	Did Authenticate callback
+ */
+-(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest{
+	
+
+	
+	OAToken				*authenticatedToken;
+	FROAuthRequest		*parentRequest;
+		
+	//Get the object from the userInfo
+	if( ![aRequest userInfo] ){
+		//NSLog(@"No userInfo");
+		[NSException raise:@"InvalidUserInfo" format:@"No UserInfo set for %@ to %@",aRequest, [aRequest url]];
+	}
+	
+	//Get the parent request
+	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){
+		
+		//Create a token with the request
+		authenticatedToken = [[OAToken alloc] initWithHTTPResponseBody:[aRequest responseString]];
+		
+		//Save the token with the username of the user
+		//So we have one token per user
+		//We should consider locking this just in case
+		[authenticatedToken storeInUserDefaultsWithServiceProviderName:@"twitter" 
+																prefix:[parentRequest username]
+		];
+		
+		//Set the token to the new token
+		[parentRequest setToken:authenticatedToken];
+		
+		//Start the request
+		[parentRequest _startAsynchronousWithoutAuthentication];
+	}
 	
 }
 
--(void) startSynchronous{
+/*
+ *	Did Fail callback
+ */
+-(void) _authenticationDidFail:(FROAuthRequest*) aRequest{
+	NSLog(@"Hard Fail");
 	
-	[NSException raise:@"unrecognized selector" format:@"ASIHTTPRequest no longer responds to startSynchronous"];
-	//[self prepare];
+	FROAuthRequest	*parentRequest;
 	
-	//[super startSynchronous];
+	//Call the parent failure method
+	//Get the object from the userInfo
+	if( ![aRequest userInfo] ){
+		//NSLog(@"No userInfo");
+		[NSException raise:@"InvalidUserInfo" format:@"No UserInfo set for %@ to %@",aRequest, [aRequest url]];
+	}
+	
+	//Get the parent request
+	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){
+		
+		//Call the parent tread failure method
+		[self performSelectorOnMainThread:[parentRequest didFailSelector] withObject:parentRequest waitUntilDone:YES];
+	}
 }
 
+/*
+- (void)applyAuthorizationHeader{
+	NSLog(@"Test");
+}*/
 
 #pragma mark -
 #pragma mark Overloaded ASIFormDataRequest
@@ -564,6 +693,9 @@
 	//[_timestamp release];
 
 	[_consumer release];
+	
+	[_userInfo release];
+	[_requestTokenURL release];
 	
 	[self.signatureProvider release];
 	
