@@ -27,11 +27,15 @@
 	id<OASignatureProviding> _signatureProvider;
 	
 	NSString	*_timestamp, *_nonce, *_realm;
+	
+	NSDictionary	*_userInfo;
 
 }
 
 @property (nonatomic, retain) OAToken		*token;
 @property (nonatomic, retain) OAConsumer	*consumer;
+
+@property (nonatomic, retain) NSDictionary	*_userInfo;
 
 @property (nonatomic, retain) id			signatureProvider;
 

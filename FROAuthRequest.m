@@ -31,6 +31,7 @@
 @synthesize token = _token;
 @synthesize consumer = _consumer;
 @synthesize signatureProvider = _signatureProvider;
+@synthesize userInfo = _userInfo;
 
 #pragma mark -
 #pragma mark Factory Methods
@@ -107,9 +108,10 @@
 
 -(void) startSynchronous{
 	
-	[self prepare];
+	[NSException raise:@"unrecognized selector" format:@"ASIHTTPRequest no longer responds to startSynchronous"];
+	//[self prepare];
 	
-	[super startSynchronous];
+	//[super startSynchronous];
 }
 
 
@@ -273,7 +275,7 @@
 }
 
 //Use xAuth to authorize a token
-+(OAToken*) _accessTokenFromProvider:(NSURL*) accessURL 
++(FROAuthRequest*) _accessTokenFromProvider:(NSURL*) accessURL 
 						WithUsername:(NSString*) pUsername 
 							password:(NSString*) pPassword
 						 andConsumer:(OAConsumer*) pConsumer
@@ -304,8 +306,12 @@
 	
 	[accessRequest setPostValue:@"client_auth" forKey:@"x_auth_mode"];
 	
-	[accessRequest startSynchronous];
 	
+	return accessRequest;
+	//[accessRequest startAsynchronous];
+	
+	//[accessRequest ]
+	/*
 	if( [accessRequest responseStatusCode] == 200 && [accessRequest responseString] ){
 #if DEBUG
 		NSLog(@"[FROAuthRequest xAuthToken] Success \r\n%@", [accessRequest responseString]);
@@ -314,23 +320,12 @@
 	}
 	else{
 		
-		UIAlertView *alertView;
-		
-		alertView = [[UIAlertView alloc] initWithTitle: @""
-											   message: @"Couldn't find "
-											  delegate: nil
-									 cancelButtonTitle: nil
-									 otherButtonTitles: nil
-					 ];
-		
-		[alertView show];
-		
-		[alertView release];
 #if DEBUG
 		NSLog(@"[FROAuthRequest xAuthToken] Failure \r\n%@", [accessRequest error]);
 #endif		
 		return nil;
 	}
+	*/
 }
 
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
