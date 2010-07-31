@@ -686,7 +686,9 @@
 	NSLog(@"[FROAuthRequest prepare] \r\nAuthentication Header %@", oauthHeader);
 #endif	
 	[self addRequestHeader:@"Authorization" value: oauthHeader];
-
+	
+	//Hack --> set the username and password to nil
+	[self setUsername:nil]; [self setPassword:nil];
 }
 
 #pragma mark -
