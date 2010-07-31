@@ -183,11 +183,21 @@
  */
 -(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest{
 	
-
-	
+	NSLog(@"Response %@",[aRequest responseString]);
 	OAToken				*authenticatedToken;
 	FROAuthRequest		*parentRequest;
+	
+	//Create a token with the request
+	authenticatedToken = [[OAToken alloc] initWithHTTPResponseBody:[aRequest responseString]];
+	
+	//If there is no request token
+	if( ![authenticatedToken key] ){
 		
+		//Cause the request to fail
+		[self _authenticationDidFail:aRequest];
+		return;
+	}
+	
 	//Get the object from the userInfo
 	if( ![aRequest userInfo] ){
 		//NSLog(@"No userInfo");
@@ -195,11 +205,7 @@
 	}
 	
 	//Get the parent request
-	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){
-		
-		//Create a token with the request
-		authenticatedToken = [[OAToken alloc] initWithHTTPResponseBody:[aRequest responseString]];
-		
+	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){		
 		//Save the token with the username of the user
 		//So we have one token per user
 		//We should consider locking this just in case
@@ -220,7 +226,7 @@
  *	Did Fail callback
  */
 -(void) _authenticationDidFail:(FROAuthRequest*) aRequest{
-	NSLog(@"Hard Fail");
+	NSLog(@"Hard Fail => HTTP Error:%d", [aRequest responseStatusCode]);
 	
 	FROAuthRequest	*parentRequest;
 	
@@ -235,14 +241,18 @@
 	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){
 		
 		//Call the parent tread failure method
-		[self performSelectorOnMainThread:[parentRequest didFailSelector] withObject:parentRequest waitUntilDone:YES];
+		[[parentRequest delegate] performSelectorOnMainThread:[parentRequest didFailSelector] withObject:parentRequest waitUntilDone:YES];
 	}
 }
 
-/*
+
 - (void)applyAuthorizationHeader{
-	NSLog(@"Test");
-}*/
+	//NSLog(@"Test");
+}
+
+- (void)attemptToApplyCredentialsAndResume{
+	
+}
 
 #pragma mark -
 #pragma mark Overloaded ASIFormDataRequest
