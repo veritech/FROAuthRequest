@@ -22,8 +22,6 @@
 	id<OASignatureProviding> _signatureProvider;
 	
 	NSString	*_timestamp, *_nonce, *_realm, *_requestTokenURL;
-	
-	NSDictionary	*_userInfo;
 
 }
 
@@ -31,7 +29,6 @@
 @property (nonatomic, retain) OAConsumer	*consumer;
 @property (nonatomic, retain) id			signatureProvider;
 
-@property (nonatomic, retain) NSDictionary	*userInfo;
 @property (nonatomic, retain) NSString		*requestTokenURL;
 
 +(id) requestWithURL: (NSURL *)newURL  

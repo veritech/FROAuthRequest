@@ -35,7 +35,6 @@
 @synthesize token = _token;
 @synthesize consumer = _consumer;
 @synthesize signatureProvider = _signatureProvider;
-@synthesize userInfo = _userInfo;
 @synthesize requestTokenURL = _requestTokenURL;
 
 #pragma mark -
@@ -68,7 +67,6 @@
 		
 		//Alter this after the request has been created;
 		//[self setRequestMethod:@"POST"];
-		_userInfo = nil;
 		_requestTokenURL = nil;
 		
 		[self setConsumer: consumer];
@@ -706,7 +704,6 @@
 
 	[_consumer release];
 	
-	[_userInfo release];
 	[_requestTokenURL release];
 	
 	[self.signatureProvider release];
