@@ -18,7 +18,7 @@
 - (NSString *)timestamp;
 - (NSString *)nonce;
 
--(BOOL) _startAsynchronousWithoutAuthentication;
+-(void) _startAsynchronousWithoutAuthentication;
 -(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest;
 -(void) _authenticationDidFail:(FROAuthRequest*) aRequest;
 
@@ -170,7 +170,7 @@
 /*
  *	Special method to skip authentication check
  */
--(BOOL) _startAsynchronousWithoutAuthentication{
+-(void) _startAsynchronousWithoutAuthentication{
 	[self prepare];
 	
 	[super startAsynchronous];
