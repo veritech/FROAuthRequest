@@ -473,33 +473,17 @@
  URL encode a string
  */
 - (NSString *) URLEncodedString: (NSString *) string {
-	CFStringRef preprocessedString = CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault, (CFStringRef) string, CFSTR(""), kCFStringEncodingUTF8);
-    NSString *result = (NSString *)CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
-                                                                           preprocessedString,
-                                                                           NULL,
-																		   CFSTR("!*'();:@&=+$,/?%#[]"),
-                                                                           kCFStringEncodingUTF8);
-    [result autorelease];
-	
-	//NSLog(@"RETAIN COUNT %d",CFGetRetainCount( preprocessedString));
-	
-	if( preprocessedString != NULL ){
-		CFRelease(preprocessedString);		
-	}
 
-	//Handle Spaces
-	result = [result stringByReplacingOccurrencesOfString:@"%20" withString:@"%2520"];
-	
-	//Handle Hashes
-	result = [result stringByReplacingOccurrencesOfString:@"%23" withString:@"%2523"];
-	
-	//Handle Colons
-	//result = [result stringByReplacingOccurrencesOfString:@"%3A" withString:@"%253A"];
-
+	NSString *result = (NSString *)CFURLCreateStringByAddingPercentEscapes(NULL, 
+																		   (CFStringRef)string, 
+																		   NULL, 
+																		   (CFStringRef)@":/=,!$&'()*+;[]@#?",
+																		   kCFStringEncodingUTF8);
 #if DEBUG
 	NSLog(@"String encoded \r\nin:%@ \r\nout:%@", string, result);
 #endif
-	return result;	
+	
+    return [result autorelease];
 }
 
 //Create a url string
@@ -612,9 +596,9 @@
 	for( key in dictionary ){
 		
 		if( [[dictionary objectForKey:key] length] > 0){
-			tmp = [NSString stringWithFormat:@"%@=%@", key, [dictionary objectForKey:key] ];
+			tmp = [NSString stringWithFormat:@"%@=%@", key, [self URLEncodedString: [dictionary objectForKey:key] ]];
 			
-			tmp = [self URLEncodedString: tmp];
+			//tmp = [self URLEncodedString: tmp];
 			
 			[pairs addObject:tmp];			
 		}
