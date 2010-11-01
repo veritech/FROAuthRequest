@@ -284,136 +284,9 @@
 	//[super requestFinished];
 }
 
-
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
 //		OAuth Methods
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
-#pragma mark -
-#pragma mark Request Token
-+(OAToken*) _requestTokenFromProvider:(NSURL*) requestURL 
-					 withConsumer:(OAConsumer*) pConsumer 
-						forObject:(id) pDelegate
-{
-	
-#if DEBUG
-	NSLog(@"[FROAuthRequest requestToken]");
-#endif
-	FROAuthRequest* tokenRequest;
-	
-	tokenRequest = [FROAuthRequest requestWithURL: requestURL 
-										 consumer: pConsumer
-											token: nil 
-											realm: nil 
-								signatureProvider: nil
-					];
-	
-	[tokenRequest startSynchronous];
-	
-	return [FROAuthRequest _didRequestToken: tokenRequest forObject:pDelegate];
-}
-
-/*
- Request token callback
- */
-+(OAToken*) _didRequestToken:(FROAuthRequest*) pRequest 
-			   forObject:pDelegate
-{
-
-	OAToken *tempToken;
-	
-	//Parse out the token
-	if( [pRequest responseString] && [pRequest responseStatusCode] == 200 ){
-		
-		tempToken = [[[OAToken alloc] initWithHTTPResponseBody: [pRequest responseString]] autorelease];
-#if DEBUG
-		NSLog(@"[FROAuthRequest didRequestToken] Found a response \r\n%@", [pRequest responseString]);
-
-		NSLog(@"[FROAuthRequest didRequestToken] New Request Token Created key:%@ secret:%@",tempToken.key,tempToken.secret);
-#endif
-		//Authenticate the token
-		if( [tempToken key] != nil){
-
-			if( pDelegate && [pDelegate respondsToSelector:@selector(authenticateToken:withProvider:)]){
-				
-				[pDelegate performSelector:@selector( authenticateToken:withProvider:) withObject: tempToken withObject: [pRequest url]];
-				//[pDelegate authenticateToken: tempToken withProvider:[pRequest url]];
-
-			}
-			
-			return tempToken;			
-		} 
-	}
-	else{
-		
-		UIAlertView *alertView;
-		
-		alertView = [[UIAlertView alloc] initWithTitle: NSLocalizedString(@"Could not connect",@"Could not connect")
-											   message: NSLocalizedString(@"Could not to connect to the internet",@"Could not to connect to the internet")
-											  delegate: nil
-									 cancelButtonTitle: NSLocalizedString(@"ok",@"Ok")
-									 otherButtonTitles: nil
-					 ];
-		
-		[alertView show];
-		
-		[alertView release];
-#if DEBUG		
-		NSLog(@"[FROAuthRequest didRequestToken] failed");
-#endif
-	}
-
-	//Notify the parent that we failed
-	//[[self delegate] performSelectorOnMainThread:[self didFailSelector] withObject:self waitUntilDone:[NSThread isMainThread]];		
-	
-	return nil;
-}
-
-
-#pragma mark -
-#pragma mark Authorize Token
-+(OAToken*) _accessTokenWithRequestToken:(OAToken*) pToken 
-						fromProvider:(NSURL*) accessURL 
-						 forConsumer:(OAConsumer*) pConsumer
-						   forObject:(id) pDelegate
-{
-
-#if DEBUG
-	NSLog(@"[FROAuthRequest authorizeToken]");
-#endif
-	FROAuthRequest* authorizeRequest;
-	
-	//Append the pin to the token
-	//NSString *URLStr = [accessURL absoluteString];
-	
-	//URLStr = [URLStr stringByAppendingString:[NSString stringWithFormat:@"?oauth_verifier=%s", pToken.pin]];
-	
-	authorizeRequest = [FROAuthRequest requestWithURL: accessURL //[NSURL URLWithString:URLStr]
-											 consumer: pConsumer
-												token: pToken 
-												realm: nil 
-									signatureProvider: nil
-						];
-
-	//We are already operating on a seperate thread so using this should be fine
-	[authorizeRequest startSynchronous];
-	
-	//This log can be split into callbacks
-	if( [authorizeRequest responseStatusCode] == 200 && [authorizeRequest responseString] ){
-#if DEBUG
-		NSLog(@"[FROAuthRequest] Created new Access Token! \r\n%@", [authorizeRequest responseString]);
-#endif
-		//Set the access token
-		return [[[OAToken alloc] initWithHTTPResponseBody:[authorizeRequest responseString]] autorelease];
-
-	}
-	else{
-#if DEBUG
-		NSLog(@"[FROAuthRequest] Failed to get Access Token!");
-#endif	
-		return nil;
-	}
-}
-
 //Use xAuth to authorize a token
 +(FROAuthRequest*) _accessTokenFromProvider:(NSURL*) accessURL 
 						WithUsername:(NSString*) pUsername 
@@ -448,28 +321,10 @@
 	
 	
 	return accessRequest;
-	//[accessRequest startAsynchronous];
-	
-	//[accessRequest ]
-	/*
-	if( [accessRequest responseStatusCode] == 200 && [accessRequest responseString] ){
-#if DEBUG
-		NSLog(@"[FROAuthRequest xAuthToken] Success \r\n%@", [accessRequest responseString]);
-#endif		
-		return [[[OAToken alloc] initWithHTTPResponseBody:[accessRequest responseString]] autorelease];
-	}
-	else{
-		
-#if DEBUG
-		NSLog(@"[FROAuthRequest xAuthToken] Failure \r\n%@", [accessRequest error]);
-#endif		
-		return nil;
-	}
-	*/
 }
 
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
-//			Utilites
+//			OAUTH Utilites
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
 
 /*
