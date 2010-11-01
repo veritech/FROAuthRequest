@@ -138,36 +138,6 @@
 }
 
 /*
- *	Token Management
- *	Do we have an authenticated token
- *
- */
--(BOOL) hasAuthenticatedToken{
-	
-	OAToken	*authenticatedToken;
-	
-	NSLog(@"[FROAuthRequest hasAuthenticateToken] user: %@",[self username]);
-	
-	//Get the authenticatedToken
-	authenticatedToken = [[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:@"twitter" 
-																				prefix:[self username]
-	];
-
-	//Validate
-	if( authenticatedToken ){
-		
-		NSLog(@"token key: %@", [authenticatedToken key]);
-		NSLog(@"token secret: %@", [authenticatedToken secret]);
-		//Set the token
-		[self setToken: authenticatedToken];
-		return YES;
-	}
-	else{
-		return NO;
-	}
-}
-
-/*
  *	Special method to skip authentication check
  */
 -(void) _startAsynchronousWithoutAuthentication{
@@ -245,11 +215,48 @@
 
 
 - (void)applyAuthorizationHeader{
-	//NSLog(@"Test");
+#if DEBUG
+	NSLog(@"[FROAuthRequest] applyAuthorizationHeader");
+#endif
 }
 
 - (void)attemptToApplyCredentialsAndResume{
+#if DEBUG
+	NSLog(@"[FROAuthRequest] attemptToApplyCredentialsAndResume %d", [self responseStatusCode]);
+	NSLog(@"%@",[self responseStatusMessage]);
+#endif
+}
+
+#pragma mark -
+#pragma mark Token Management
+/*
+ *	Token Management
+ *	Do we have an authenticated token
+ *
+ */
+-(BOOL) hasAuthenticatedToken{
 	
+	OAToken	*authenticatedToken;
+	
+	NSLog(@"[FROAuthRequest hasAuthenticateToken] user: %@",[self username]);
+	
+	//Get the authenticatedToken
+	authenticatedToken = [[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:@"twitter" 
+																				prefix:[self username]
+						  ];
+	
+	//Validate
+	if( authenticatedToken ){
+		
+		NSLog(@"token key: %@", [authenticatedToken key]);
+		NSLog(@"token secret: %@", [authenticatedToken secret]);
+		//Set the token
+		[self setToken: authenticatedToken];
+		return YES;
+	}
+	else{
+		return NO;
+	}
 }
 
 #pragma mark -
@@ -263,17 +270,13 @@
 	
 }
 
-/*
- 
- 
 - (void)requestFinished{
-	
+#if DEBUG
 	NSLog(@"[FROAuthRequest] Request Finished");
-
-	
+#endif
 	[super requestFinished];
 }
-*/ 
+
 - (void)requestFailed:(FROAuthRequest *) pRequest{
 #if DEBUG
 	NSLog(@"[FROAuthRequest requestFailed] %@", [pRequest error]);
