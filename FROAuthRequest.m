@@ -113,9 +113,9 @@
 		
 		FROAuthRequest		*authenticationRequest;
 		
-		authenticationRequest = [FROAuthRequest _accessTokenFromProvider: [NSURL URLWithString:@"http://twitter.com/oauth/request_token"] 
-															WithUsername: @"veritech"//[self username] 
-																password: @"robotech"//[self password]
+		authenticationRequest = [FROAuthRequest _accessTokenFromProvider: [NSURL URLWithString:[self requestTokenURL]] 
+															WithUsername: [self username] 
+																password: [self password]
 															 andConsumer: [self consumer]	
 		 ];
 		
