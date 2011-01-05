@@ -1,6 +1,5 @@
 //
 //  FROAuthRequest.m
-//  kroonjuwelen
 //
 //  Created by Jonathan Dalrymple on 12/04/2010.
 //  Copyright 2010 Float:Right. All rights reserved.
