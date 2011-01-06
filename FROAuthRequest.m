@@ -520,7 +520,8 @@
                              [self nonce]
 							 ];
 	
-	if (self.token.pin.length) oauthHeader = [oauthHeader stringByAppendingFormat: @", oauth_verifier=\"%@\"", self.token.pin];					//added for the Twitter OAuth implementation
+	//No longer supports pin
+	//if (self.token.pin.length) oauthHeader = [oauthHeader stringByAppendingFormat: @", oauth_verifier=\"%@\"", self.token.pin];					//added for the Twitter OAuth implementation
 #if DEBUG
 	NSLog(@"[FROAuthRequest prepare] \r\nAuthentication Header %@", oauthHeader);
 #endif	
