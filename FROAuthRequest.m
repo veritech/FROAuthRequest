@@ -17,17 +17,6 @@
 - (NSString *)timestamp;
 - (NSString *)nonce;
 
--(void) _startAsynchronousWithoutAuthentication;
--(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest;
--(void) _authenticationDidFail:(FROAuthRequest*) aRequest;
-
--(BOOL) hasAuthenticatedToken;
-
-+(FROAuthRequest*) _accessTokenFromProvider:(NSURL*) accessURL 
-							   WithUsername:(NSString*) pUsername 
-								   password:(NSString*) pPassword
-								andConsumer:(OAConsumer*) pConsumer;
-
 @end
 
 @interface ASIFormDataRequest(private)
@@ -41,10 +30,12 @@
 @synthesize token = _token;
 @synthesize consumer = _consumer;
 @synthesize signatureProvider = _signatureProvider;
-@synthesize requestTokenURL = _requestTokenURL;
 
 #pragma mark -
 #pragma mark Factory Methods
+/**
+ *	A standard OAuth request
+ */
 +(id) requestWithURL: (NSURL *)newURL  
 			consumer: (OAConsumer*) consumer
 			   token: (OAToken*) token
@@ -60,6 +51,30 @@
 }
 
 
+/**
+ *	Request a token from a provider
+ */
++(void) requestTokenFromProvider:(NSURL*) aURL 
+				  withConsumer:(OAConsumer*) aConsumer 
+				  withDelegate:(id<FROAuthenticationDelegate>) aDelegate{
+
+	FROAuthRequest	*req;
+	
+	req = [FROAuthRequest requestWithURL:aURL 
+								consumer:aConsumer 
+								   token:nil 
+								   realm:nil 
+					   signatureProvider:nil
+		   ];
+	
+	[req setDelegate:self];
+	
+	[req setDidFinishSelector:@selector(OAuthRequestDidReceiveRequestToken:)];
+	[req setDidFailSelector:@selector(OAuthRequestDidFail:)];
+	
+	[req startAsynchronous];
+}
+
 #pragma mark -
 #pragma mark Init Methods
 -(id) initWithURL: (NSURL *)newURL  
@@ -73,12 +88,11 @@
 		
 		//Alter this after the request has been created;
 		//[self setRequestMethod:@"POST"];
-		_requestTokenURL = nil;
 		
 		[self setConsumer: consumer];
 				
 		if( token == nil ){
-			self.token = [[OAToken alloc] init];
+			self.token = [[OAToken alloc] initWithKey:@"" secret:@""];
 		}
 		else{
 			self.token = token;
@@ -105,120 +119,11 @@
 }
 
 
-#pragma mark -
-#pragma mark Start Methods
-/*
- *	Overload start ASync
- *
- *	Decide whether we need to authenticate or not
- */
 -(void) startAsynchronous{
-	
-	//If we dont have a token go and get one
-	if( ![self hasAuthenticatedToken] ){
-		
-		FROAuthRequest		*authenticationRequest;
-		
-		authenticationRequest = [FROAuthRequest _accessTokenFromProvider: [NSURL URLWithString:[self requestTokenURL]] 
-															WithUsername: [self username] 
-																password: [self password]
-															 andConsumer: [self consumer]	
-		 ];
-		
-		[authenticationRequest setUserInfo:[NSDictionary dictionaryWithObject:self forKey:@"request"]];
-		
-		[authenticationRequest setDelegate:self];
-		
-		//Set the callbacks
-		[authenticationRequest setDidFinishSelector:@selector(_authenticationDidSucceed:)];
-		[authenticationRequest setDidFailSelector:@selector(_authenticationDidFail:)];
-		
-		//Call special method that skips this check
-		[authenticationRequest _startAsynchronousWithoutAuthentication];
-	}
-	else{
-		//We might want to load the token before this point
-		[self _startAsynchronousWithoutAuthentication];
-	}
-	
-}
-
-/*
- *	Special method to skip authentication check
- */
--(void) _startAsynchronousWithoutAuthentication{
 	[self prepare];
 	
 	[super startAsynchronous];
 }
-
-/*
- *	Did Authenticate callback
- */
--(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest{
-	
-	NSLog(@"Response %@",[aRequest responseString]);
-	OAToken				*authenticatedToken;
-	FROAuthRequest		*parentRequest;
-	
-	//Create a token with the request
-	authenticatedToken = [[OAToken alloc] initWithHTTPResponseBody:[aRequest responseString]];
-	
-	//If there is no request token
-	if( ![authenticatedToken key] ){
-		
-		//Cause the request to fail
-		[self _authenticationDidFail:aRequest];
-		return;
-	}
-	
-	//Get the object from the userInfo
-	if( ![aRequest userInfo] ){
-		//NSLog(@"No userInfo");
-		[NSException raise:@"InvalidUserInfo" format:@"No UserInfo set for %@ to %@",aRequest, [aRequest url]];
-	}
-	
-	//Get the parent request
-	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){		
-		//Save the token with the username of the user
-		//So we have one token per user
-		//We should consider locking this just in case
-		[authenticatedToken storeInUserDefaultsWithServiceProviderName:@"twitter" 
-																prefix:[parentRequest username]
-		];
-		
-		//Set the token to the new token
-		[parentRequest setToken:authenticatedToken];
-		
-		//Start the request
-		[parentRequest _startAsynchronousWithoutAuthentication];
-	}
-	
-}
-
-/*
- *	Did Fail callback
- */
--(void) _authenticationDidFail:(FROAuthRequest*) aRequest{
-	NSLog(@"Hard Fail => HTTP Error:%d", [aRequest responseStatusCode]);
-	
-	FROAuthRequest	*parentRequest;
-	
-	//Call the parent failure method
-	//Get the object from the userInfo
-	if( ![aRequest userInfo] ){
-		//NSLog(@"No userInfo");
-		[NSException raise:@"InvalidUserInfo" format:@"No UserInfo set for %@ to %@",aRequest, [aRequest url]];
-	}
-	
-	//Get the parent request
-	if( ( parentRequest = [[aRequest userInfo] objectForKey:@"request"] ) ){
-		
-		//Call the parent tread failure method
-		[[parentRequest delegate] performSelectorOnMainThread:[parentRequest didFailSelector] withObject:parentRequest waitUntilDone:YES];
-	}
-}
-
 
 - (void)applyAuthorizationHeader{
 #if DEBUG
@@ -228,41 +133,8 @@
 
 - (void)attemptToApplyCredentialsAndResume{
 #if DEBUG
-	NSLog(@"[FROAuthRequest] attemptToApplyCredentialsAndResume %d", [self responseStatusCode]);
-	NSLog(@"%@",[self responseStatusMessage]);
+	NSLog(@"[FROAuthRequest] attemptToApplyCredentialsAndResume %d\r\n==== Response ====\r\n%@", [self responseStatusCode],[self responseString]);
 #endif
-}
-
-#pragma mark -
-#pragma mark Token Management
-/*
- *	Token Management
- *	Do we have an authenticated token
- *
- */
--(BOOL) hasAuthenticatedToken{
-	
-	OAToken	*authenticatedToken;
-	
-	NSLog(@"[FROAuthRequest hasAuthenticateToken] user: %@",[self username]);
-	
-	//Get the authenticatedToken
-	authenticatedToken = [[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:@"twitter" 
-																				prefix:[self username]
-						  ];
-	
-	//Validate
-	if( authenticatedToken ){
-		
-		NSLog(@"token key: %@", [authenticatedToken key]);
-		NSLog(@"token secret: %@", [authenticatedToken secret]);
-		//Set the token
-		[self setToken: authenticatedToken];
-		return YES;
-	}
-	else{
-		return NO;
-	}
 }
 
 #pragma mark -
@@ -277,56 +149,19 @@
 }
 
 - (void)requestFinished{
+	[super requestFinished];
 #if DEBUG
 	NSLog(@"[FROAuthRequest] Request Finished");
 #endif
-	[super requestFinished];
+
 }
 
-- (void)requestFailed:(FROAuthRequest *) pRequest{
+- (void)failWithError:(NSError *)theError{
+	[super failWithError:theError];
 #if DEBUG
-	NSLog(@"[FROAuthRequest requestFailed] %@", [pRequest error]);
+	NSLog(@"[FROAuthRequest requestFailed] %@ %@", theError, [self responseString]);
 #endif
-	//[super requestFinished];
-}
 
-//-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
-//		OAuth Methods
-//-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
-//Use xAuth to authorize a token
-+(FROAuthRequest*) _accessTokenFromProvider:(NSURL*) accessURL 
-						WithUsername:(NSString*) pUsername 
-							password:(NSString*) pPassword
-						 andConsumer:(OAConsumer*) pConsumer
-{
-	
-	FROAuthRequest *accessRequest;
-	
-	//Insure that it SSL
-	if( ![[accessURL scheme] isEqualToString:@"https"] ){
-#if DEBUG
-		NSLog(@"Not SSL :%@",[accessURL scheme]);
-#endif		
-		//return nil;
-	}
-	
-	accessRequest = [FROAuthRequest requestWithURL: accessURL 
-										  consumer: pConsumer 
-											 token: nil  
-											 realm: nil 
-								 signatureProvider: nil
-					 ];
-	
-	[accessRequest setRequestMethod:@"POST"];
-	
-	[accessRequest setPostValue:pUsername forKey:@"x_auth_username"];
-	
-	[accessRequest setPostValue:pPassword forKey:@"x_auth_password"];
-	
-	[accessRequest setPostValue:@"client_auth" forKey:@"x_auth_mode"];
-	
-	
-	return accessRequest;
 }
 
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
@@ -336,18 +171,14 @@
 /*
  URL encode a string
  */
-- (NSString *) URLEncodedString: (NSString *) string {
+- (NSString *) URLEncodedString: (NSString *) aString {
 
-	NSString *result = (NSString *)CFURLCreateStringByAddingPercentEscapes(NULL, 
-																		   (CFStringRef)string, 
-																		   NULL, 
-																		   (CFStringRef)@":/=,!$&'()*+;[]@#?",
-																		   kCFStringEncodingUTF8);
+	NSString *result = [aString encodedURLString];
 #if DEBUG
-	NSLog(@"String encoded \r\nin:%@ \r\nout:%@", string, result);
+	NSLog(@"==== String encoded ====\r\nin:%@\r\nout:%@", aString, result);
 #endif
 	
-    return [result autorelease];
+    return result; //[result autorelease];
 }
 
 //Create a url string
@@ -393,11 +224,11 @@
 	//NSArray			*queryParams;
 	
 	params = [NSMutableDictionary dictionaryWithObjectsAndKeys:
-							[[self consumer] key],
+							[[[self consumer] key] encodedURLParameterString],
 							@"oauth_consumer_key",
-							[[self token] key] ? [[self token] key] : @"",	//Stops nil from being entered and causing a failure
+							([[self token] key] ? [[[self token] key] encodedURLParameterString] : @""),	//Stops nil from being entered and causing a failure
 							@"oauth_token",
-							[[self signatureProvider] name],
+							[[[self signatureProvider] name] encodedURLParameterString],
 							@"oauth_signature_method",
 							[self timestamp],
 							@"oauth_timestamp",
@@ -407,7 +238,7 @@
 							@"oauth_version",
 							nil
 							];
-	
+		
 	//Find out if the params to the query
 	if( queryStr = [[self url] query] ){
 		//Break the query up into pairs and add them to the dictionary
@@ -446,23 +277,22 @@
 	
 	NSMutableArray *pairs;
 	NSArray *sortedPairs;
-	NSString *key, *tmp;
+	NSString *key, *tmp, *val;
 	NSString *baseString, *normalizedString;
 	
-	if( [dictionary count] < 6 ){
-		@throw [NSException exceptionWithName:@"InvalidParameterCount" 
-									   reason:[NSString stringWithFormat:@"Passed Dictionary contains too few entries (6 Min vs %d found)", [dictionary count]] 
-									 userInfo:[NSDictionary dictionaryWithObjectsAndKeys: dictionary,@"dictionary",self,@"request",nil]];
-	}
+#if DEBUG
+	NSLog(@"==== Basestring Input ====\r\n%@", dictionary);
+#endif
 	
-	pairs = [[NSMutableArray alloc] init];
+	pairs = [[NSMutableArray alloc] initWithCapacity:[dictionary count]];
 	
+	// OAuth Spec, Section 9.1.1 "Normalize Request Parameters"
 	for( key in dictionary ){
 		
-		if( [[dictionary objectForKey:key] length] > 0){
-			tmp = [NSString stringWithFormat:@"%@=%@", key, [self URLEncodedString: [dictionary objectForKey:key] ]];
-			
-			//tmp = [self URLEncodedString: tmp];
+		val = [dictionary objectForKey:key];
+		
+		if( [val length] > 0){
+			tmp = [NSString stringWithFormat:@"%@=%@", key, [val encodedURLParameterString]];
 			
 			[pairs addObject:tmp];			
 		}
@@ -475,19 +305,20 @@
 	}
 	
 	sortedPairs = [pairs sortedArrayUsingSelector:@selector(compare:)];
-	
+
 	normalizedString = [sortedPairs componentsJoinedByString:@"&"];
-	
+
+    // OAuth Spec, Section 9.1.2 "Concatenate Request Elements"
 	baseString = [NSString stringWithFormat:@"%@&%@&%@",
-					 [method uppercaseString],
-					 [self URLEncodedString:[self URLStringWithoutQueryFromURL:pURL]],
-					 [self URLEncodedString: normalizedString]
+						[method uppercaseString],
+						[[pURL URLStringWithoutQuery] encodedURLParameterString],
+						[normalizedString encodedURLString]
 				  ];
 	
 	//Cleanup
 	[pairs release];
 #if DEBUG
-	NSLog(@"Basestring \r\n%@", baseString);
+	NSLog(@"==== Basestring ====\r\n%@", baseString);
 #endif	
 	return baseString;
 }
@@ -497,40 +328,44 @@
 {
     // sign
 	// Secrets must be urlencoded before concatenated with '&'
-	// TODO: if later RSA-SHA1 support is added then a little code redesign is needed
 	NSString	*consumerSecret, *tokenSecret, *signature, *oauthToken, *oauthHeader;
 
-	consumerSecret = [self URLEncodedString: self.consumer.secret];
+	consumerSecret = [[self consumer] secret];
 	
-	tokenSecret = [self URLEncodedString: self.token.secret];
+	//Ensure the token secret is at least empty and not nil
+	if( ![[self token] secret] ){
+		tokenSecret = @"";
+	}
+	else{
+		tokenSecret = [[self token] secret];
+	}
 
-    signature = [self.signatureProvider signClearText:[self signatureBaseString]
-                                      withSecret:[NSString stringWithFormat:@"%@&%@", consumerSecret, tokenSecret]];
+    signature = [[self signatureProvider] signClearText:[self signatureBaseString]
+											 withSecret:[NSString stringWithFormat:@"%@&%@", consumerSecret, tokenSecret]];
     
     // set OAuth headers
 
-    if ([self.token.key isEqualToString:@""]){
+    if( ![[self token] key] || [[[self token] key] isEqualToString:@""] ){
 		oauthToken = @""; // not used on Request Token transactions
 	}
     else{
-		oauthToken = [NSString stringWithFormat:@"oauth_token=\"%@\", ", [self URLEncodedString: self.token.key]];
+		oauthToken = [NSString stringWithFormat:@"oauth_token=\"%@\", ", [[[self token] key] encodedURLString]];
 	}
     
     oauthHeader = [NSString stringWithFormat:
 							 @"OAuth realm=\"%@\", oauth_consumer_key=\"%@\", %@oauth_signature_method=\"%@\", oauth_signature=\"%@\", oauth_timestamp=\"%@\", oauth_nonce=\"%@\", oauth_version=\"1.0\"",
-                             [self URLEncodedString: _realm],
-                             [self URLEncodedString: [self.consumer key]],
+                             [_realm encodedURLString],
+                             [[[self consumer] key] encodedURLString],
                              oauthToken,
-                             [self URLEncodedString: [self.signatureProvider name]],
-                             [self URLEncodedString: signature],
+                             [[[self signatureProvider] name] encodedURLString],
+                             [signature encodedURLString],
                              [self timestamp],
                              [self nonce]
-							 ];
+						];
 	
 	//No longer supports pin
-	//if (self.token.pin.length) oauthHeader = [oauthHeader stringByAppendingFormat: @", oauth_verifier=\"%@\"", self.token.pin];					//added for the Twitter OAuth implementation
 #if DEBUG
-	NSLog(@"[FROAuthRequest prepare] \r\nAuthentication Header %@", oauthHeader);
+	NSLog(@"[FROAuthRequest prepare] \r\n==== Authentication Header ====\r\n%@", oauthHeader);
 #endif	
 	[self addRequestHeader:@"Authorization" value: oauthHeader];
 	
@@ -546,18 +381,16 @@
 */
 	[_realm release];
 	
-	[_nonce release];
+	//[_nonce release];
 	
 	// Cause a crash if if a nil check is done
 	//[_timestamp release];
 
 	[_consumer release];
 	
-	[_requestTokenURL release];
+	[_signatureProvider release];
 	
-	[self.signatureProvider release];
-	
-	[self.token release];
+	[_token release];
 	
 	[super dealloc];
 }

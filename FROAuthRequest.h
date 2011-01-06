@@ -11,8 +11,12 @@
 #import "OAConsumer.h"
 #import "OAToken.h"
 #import "OAHMAC_SHA1SignatureProvider.h"
+#import "NSString+URLEncoding.h"
+#import "NSURL+Base.h"
 
 #define DEBUG 1
+
+@protocol FROAuthenticationDelegate;
 
 @interface FROAuthRequest : ASIFormDataRequest {
 	
@@ -22,7 +26,7 @@
 	
 	id<OASignatureProviding> _signatureProvider;
 	
-	NSString	*_timestamp, *_nonce, *_realm, *_requestTokenURL;
+	NSString	*_timestamp, *_nonce, *_realm;
 
 }
 
@@ -30,8 +34,14 @@
 @property (nonatomic, retain) OAConsumer	*consumer;
 @property (nonatomic, retain) id			signatureProvider;
 
-@property (nonatomic, retain) NSString		*requestTokenURL;
+//Authentication
++(void) requestTokenFromProvider:(NSURL*) aURL 
+					withConsumer:(OAConsumer*) aConsumer 
+					withDelegate:(id<FROAuthenticationDelegate>) aDelegate;
 
++(OAToken*) authenticatedTokenWithHTTPResponse:(NSString*)aResponse;
+
+//Usual commands
 +(id) requestWithURL: (NSURL *)newURL  
 			consumer: (OAConsumer*) consumer
 			   token: (OAToken*) token
@@ -50,4 +60,14 @@
 							 forConsumer:(OAConsumer*) pConsumer
 							   forObject:(id) pDelegate;
 */
+
+- (NSString *)signatureBaseString;
+@end
+
+@protocol FROAuthenticationDelegate
+
+-(void) OAuthRequestDidReceiveRequestToken:(FROAuthRequest*) aRequest;
+//-(void) OAuthRequest:(FROAuthRequest*) aRequest didReceiveAuthenticatedToken:(OAToken*) aToken;
+-(void) OAuthRequestDidFail:(FROAuthRequest*) aRequest;
+
 @end
