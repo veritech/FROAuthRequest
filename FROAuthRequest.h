@@ -8,7 +8,9 @@
 #import <Foundation/Foundation.h>
 #import "ASIFormDataRequest.h"
 
-#import "OAuthConsumer.h"
+#import "OAConsumer.h"
+#import "OAToken.h"
+#import "OAHMAC_SHA1SignatureProvider.h"
 
 #define DEBUG 1
 
