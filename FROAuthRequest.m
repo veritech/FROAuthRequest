@@ -21,6 +21,13 @@
 -(void) _authenticationDidSucceed:(FROAuthRequest*) aRequest;
 -(void) _authenticationDidFail:(FROAuthRequest*) aRequest;
 
+-(BOOL) hasAuthenticatedToken;
+
++(FROAuthRequest*) _accessTokenFromProvider:(NSURL*) accessURL 
+							   WithUsername:(NSString*) pUsername 
+								   password:(NSString*) pPassword
+								andConsumer:(OAConsumer*) pConsumer;
+
 @end
 
 @interface ASIFormDataRequest(private)

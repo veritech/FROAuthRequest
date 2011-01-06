@@ -44,9 +44,10 @@
 			   realm: (NSString*) realm
    signatureProvider: (id<OASignatureProviding>) provider;
 
+/*
 +(OAToken*) _accessTokenWithRequestToken:(OAToken*) pToken 
 							fromProvider:(NSURL*) accessURL 
 							 forConsumer:(OAConsumer*) pConsumer
 							   forObject:(id) pDelegate;
-
+*/
 @end
