@@ -25,6 +25,7 @@ How do i use it?
 
 For the most part you use it just like you would use a normal ASIHTTPRequest. 
 The chief difference being that you use a modified constructor see below...
+
 <code>
 	
 	FROAuthRequest *request;
@@ -39,27 +40,34 @@ The chief difference being that you use a modified constructor see below...
 	
 	[request startAsynchronous];
 </code>
+
 After that it behaves just like any normal ASIHTTPRequest. The FROAuthRequest is a subclass of the ASIFormDataRequest,
 so it supports all HTTP verbs (GET,POST,PUT,DELETE) along with form data.
-
 
 Credits
 ------------
 ***Authors***
 
-Jonathan Dalrymple(veritech) 	jonathan@float-right.co.uk
+Jonathan Dalrymple ([Veritech][jonathanGithub]) 	[Online][jonathanWeb],[Twitter][jonathanTwitter],[Email][jonathanEmail]
 
 ***Sponsors***
 
-Joe Carney						http://northoftheweb.com
+Joe Carney						[Online][joesWeb],[Twitter][joesTwitter]
 
 ***Attribution***
 
-Jonathan George(jdg)			jonathan@jdg.net
+Jonathan George ([jdg][jonathanGGithub])
 
+<!-- Links -->
+[joesWeb]: http://northoftheweb.com
+[joesTwitter]: http://twitter.com/joe_carney
 
+[jonathanWeb]: http://float-right.co.uk
+[jonathanTwitter]: http://twitter.com/veritech
+[jonathanGithub]: http://github.com/veritech
+[jonathanEmail]: mailto:jonathan@float-right.co.uk
 
-
+[jonathanGGithub]: http://github.com/jdg
 
 
 
