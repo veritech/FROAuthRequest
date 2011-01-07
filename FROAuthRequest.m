@@ -256,9 +256,17 @@
 	//If this is post request find out
 	if( [self isKindOfClass:[ASIFormDataRequest class]] && [self respondsToSelector:@selector(postData)]){
 		
-		for( NSString *key in [self postData] ){
+		for( NSDictionary *pairDict in [self postData] ){
+			DebugLog(@"kv %@", pairDict);						
 			
-			[params setValue:[[self postData] objectForKey:key] forKey:key];
+			[params setValue:[pairDict objectForKey:@"value"] 
+					  forKey:[pairDict objectForKey:@"key"]
+			 ];
+			
+			
+
+			//Loop over the dictionary
+			//[params setValue:[pairDict objectForKey:key] forKey:key];
 		}
 		
 	}
