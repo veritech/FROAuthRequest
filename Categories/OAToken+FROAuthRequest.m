@@ -1,6 +1,5 @@
 //
 //  OAToken+FROAuthRequest.m
-//  SOTM
 //
 //  Created by Jonathan Dalrymple on 07/01/2011.
 //  Copyright 2011 Float:Right. All rights reserved.
@@ -15,7 +14,9 @@
 
 	NSString	*query;
 	
-	query = [aURL parameterString];
+	query = [aURL query];
+	
+	NSLog(@"Query str %@",query);
 	
 	return [[[self alloc] initWithHTTPResponseBody:query] autorelease];
 }
