@@ -13,6 +13,7 @@
 #import "OAHMAC_SHA1SignatureProvider.h"
 #import "NSString+URLEncoding.h"
 #import "NSURL+Base.h"
+#import "OAToken+FROAuthRequest.h"
 
 #define DEBUG 1
 
@@ -66,8 +67,9 @@
 
 @protocol FROAuthenticationDelegate
 
--(void) OAuthRequestDidReceiveRequestToken:(FROAuthRequest*) aRequest;
-//-(void) OAuthRequest:(FROAuthRequest*) aRequest didReceiveAuthenticatedToken:(OAToken*) aToken;
--(void) OAuthRequestDidFail:(FROAuthRequest*) aRequest;
+@optional
+-(void) OAuthRequest:(FROAuthRequest*) aRequest didReceiveRequestToken:(OAToken*) aToken;
+-(void) OAuthRequest:(FROAuthRequest*) aRequest didReceiveAuthorizedToken:(OAToken*) aToken;
+-(void) OAuthRequest:(FROAuthRequest*) aRequest didFailWithError:(NSError*) anError;
 
 @end
