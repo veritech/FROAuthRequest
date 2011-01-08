@@ -32,9 +32,143 @@
 @synthesize signatureProvider = _signatureProvider;
 
 #pragma mark -
-#pragma mark Factory Methods
+#pragma mark OAuth authentication helper methods
 /**
- *	A standard OAuth request
+ *	Request a token from a provider
+ */
++(void) requestTokenFromProvider:(NSURL*) aURL 
+					withConsumer:(OAConsumer*) aConsumer
+				   OAuthCallback:(NSString*) aCallback
+						delegate:(id<FROAuthenticationDelegate>) aDelegate
+{
+
+	FROAuthRequest	*req;
+	
+	req = [FROAuthRequest requestWithURL:aURL 
+								consumer:aConsumer 
+								   token:nil 
+								   realm:nil 
+					   signatureProvider:nil
+		   ];
+	
+	[req setRequestMethod:@"POST"];
+	//TODO:
+	//Assign self as delegatea
+	
+	if( aCallback ){
+		//[req addPostValue:@"sotm://oauth-authenticated" forKey:@"oauth_callback"];
+		[req addPostValue:aCallback 
+				   forKey:@"oauth_callback"
+		 ];
+	}
+
+	//The completion block
+	[req setCompletionBlock:^{
+		#if DEBUG
+			NSLog(@"[FROAuthRequest requestAuthorizedTokenFromProvider] Complete\r\n%@",[req responseString]);		
+		#endif
+		
+		OAToken	*requestToken = [[OAToken alloc] initWithHTTPResponseBody:[req responseString]];
+		SEL		selector = @selector(OAuthRequest:didReceiveRequestToken:);
+		
+
+		if( [aDelegate respondsToSelector:selector] ){
+			[aDelegate performSelector:selector 
+							withObject:req
+							withObject:requestToken
+			 ];
+		}
+		
+		[requestToken release];
+		
+	}];
+	
+	//Set the failed block
+	[req setFailedBlock:^{
+		
+		#if DEBUG
+			NSLog(@"[FROAuthRequest requestAuthorizedTokenFromProvider] Failure \r\n%@",req);	
+		#endif
+		
+		SEL selector = @selector(OAuthRequest:didFailWithError:);
+		
+		if( [aDelegate respondsToSelector:selector] ){
+			[aDelegate performSelector:selector 
+							withObject:[req error]
+			 ];
+		}
+	}];
+	
+	[req startAsynchronous];
+}
+
+
+/**
+ *	Attempt to get an authorized token
+ */
++(void) requestAuthorizedTokenFromProvider:(NSURL*) aURL 
+							  withConsumer:(OAConsumer*) aConsumer 
+							  requestToken:(OAToken*) aToken 
+								  delegate:(id<FROAuthenticationDelegate>) aDelegate
+{
+
+	FROAuthRequest	*req;
+	
+	req = [FROAuthRequest requestWithURL:aURL
+								consumer:aConsumer
+								   token:aToken
+								   realm:nil
+					   signatureProvider:nil
+		   ];
+
+	[req setRequestMethod:@"POST"];
+	
+	//Set the completion block
+	[req setCompletionBlock:^{		
+		
+		#if DEBUG
+			NSLog(@"[FROAuthRequest requestAuthorizedTokenFromProvider] Complete\r\n%@",[req responseString]);		
+		#endif
+	
+		OAToken	*authToken = [[OAToken alloc] initWithHTTPResponseBody:[req responseString]];
+		SEL		selector = @selector(OAuthRequest:didReceiveAuthorizedToken:);
+		
+		if( [aDelegate respondsToSelector:selector]){
+		
+			[aDelegate performSelector:selector
+							withObject:req
+							withObject:authToken
+			 ];
+			
+		}
+		
+		//DebugLog(@"The delegate %@", aDelegate);
+		[authToken release];
+	}];
+	
+	[req setFailedBlock:^{
+		
+		#if DEBUG
+			NSLog(@"[FROAuthRequest requestAuthorizedTokenFromProvider] Failure \r\n%@",req);
+		#endif
+	
+		SEL selector = @selector(OAuthRequest:didFailWithError:);
+		
+		if( [aDelegate respondsToSelector:selector] ){
+			[aDelegate performSelector:selector 
+							withObject:[req error]
+			 ];
+		}
+		
+	}];
+	
+	[req startAsynchronous];
+}
+
+#pragma mark -
+#pragma mark Object creation Methods
+/**
+ *	OAuth factory request
  */
 +(id) requestWithURL: (NSURL *)newURL  
 			consumer: (OAConsumer*) consumer
@@ -52,31 +186,8 @@
 
 
 /**
- *	Request a token from a provider
+ *	O
  */
-+(void) requestTokenFromProvider:(NSURL*) aURL 
-				  withConsumer:(OAConsumer*) aConsumer 
-				  withDelegate:(id<FROAuthenticationDelegate>) aDelegate{
-
-	FROAuthRequest	*req;
-	
-	req = [FROAuthRequest requestWithURL:aURL 
-								consumer:aConsumer 
-								   token:nil 
-								   realm:nil 
-					   signatureProvider:nil
-		   ];
-	
-	[req setDelegate:self];
-	
-	[req setDidFinishSelector:@selector(OAuthRequestDidReceiveRequestToken:)];
-	[req setDidFailSelector:@selector(OAuthRequestDidFail:)];
-	
-	[req startAsynchronous];
-}
-
-#pragma mark -
-#pragma mark Init Methods
 -(id) initWithURL: (NSURL *)newURL  
 			consumer: (OAConsumer*) consumer
 			   token: (OAToken*) token
@@ -119,6 +230,8 @@
 }
 
 
+#pragma mark -
+#pragma mark ASIHTTPRequest inards
 -(void) startAsynchronous{
 	[self prepare];
 	
@@ -164,32 +277,13 @@
 
 }
 
+#pragma mark -
+#pragma mark OAuth Utilites
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
 //			OAUTH Utilites
 //-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-
-
-/*
- URL encode a string
- */
-- (NSString *) URLEncodedString: (NSString *) aString {
-
-	NSString *result = [aString encodedURLString];
-#if DEBUG
-	NSLog(@"==== String encoded ====\r\nin:%@\r\nout:%@", aString, result);
-#endif
-	
-    return result; //[result autorelease];
-}
-
-//Create a url string
-- (NSString *)URLStringWithoutQueryFromURL: (NSURL *) pURL
-{
-    NSArray *parts = [[pURL absoluteString] componentsSeparatedByString:@"?"];
-    return [parts objectAtIndex:0];
-}
-
-/*
- Generate a timestamp on demand
+/**
+ *	Generate a timestamp on demand
  */
 - (NSString*)timestamp 
 {
@@ -200,7 +294,9 @@
     return _timestamp;
 }
 
-//Generate Nonce on demand
+/**
+ *	Generate Nonce on demand
+ */
 - (NSString*)nonce 
 {
 	
@@ -215,7 +311,9 @@
     return _nonce;
 }
 
-//Create BaseString
+/**
+ *	Create BaseString
+ */
 - (NSString *)signatureBaseString 
 {
 	
@@ -278,7 +376,9 @@
 			];
 }
 
-//Create a signature base string
+/**
+ *	Create a signature base string
+ */
 -(NSString*) signatureBaseStringForURL:(NSURL*) pURL 
 							withMethod:(NSString*) method 
 							withParams:(NSDictionary*) dictionary{

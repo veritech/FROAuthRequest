@@ -35,12 +35,22 @@
 @property (nonatomic, retain) OAConsumer	*consumer;
 @property (nonatomic, retain) id			signatureProvider;
 
-//Authentication
+/**
+ *	Fetch a request token
+ */
 +(void) requestTokenFromProvider:(NSURL*) aURL 
-					withConsumer:(OAConsumer*) aConsumer 
-					withDelegate:(id<FROAuthenticationDelegate>) aDelegate;
+					withConsumer:(OAConsumer*) aConsumer
+				   OAuthCallback:(NSString*) aCallback
+						delegate:(id<FROAuthenticationDelegate>) aDelegate;
 
-+(OAToken*) authenticatedTokenWithHTTPResponse:(NSString*)aResponse;
+/**
+ *	Fetch a authorization request
+ */
++(void) requestAuthorizedTokenFromProvider:(NSURL*) aURL 
+							  withConsumer:(OAConsumer*) aConsumer 
+							  requestToken:(OAToken*) aToken 
+								  delegate:(id<FROAuthenticationDelegate>) aDelegate;
+
 
 //Usual commands
 +(id) requestWithURL: (NSURL *)newURL  
