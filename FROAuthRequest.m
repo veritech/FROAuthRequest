@@ -233,9 +233,22 @@
 #pragma mark -
 #pragma mark ASIHTTPRequest inards
 -(void) startAsynchronous{
+	
 	[self prepare];
 	
 	[super startAsynchronous];
+}
+
+-(void) startSynchronous{
+	[self prepare];
+	
+	[super startSynchronous];
+}
+
+-(void) start{
+	[self prepare];
+	
+	[super start];
 }
 
 - (void)applyAuthorizationHeader{
@@ -480,6 +493,7 @@
 	//Hack --> set the username and password to nil
 	[self setUsername:nil]; [self setPassword:nil];
 }
+
 
 #pragma mark -
 #pragma mark Dealloc
