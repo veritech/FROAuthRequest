@@ -80,9 +80,9 @@
 	NSLog(@"[FROAuthRequest hasAuthenticateToken] user: %@",[self username]);
 	
 	//Get the authenticatedToken
-	authenticatedToken = [[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:@"twitter" 
+	authenticatedToken = [[[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:@"twitter" 
 																				prefix:[self username]
-						  ];
+						  ] autorelease];
 	
 	//Validate
 	if( authenticatedToken ){
@@ -156,7 +156,7 @@
 	FRXAuthRequest		*parentRequest;
 	
 	//Create a token with the request
-	authenticatedToken = [[OAToken alloc] initWithHTTPResponseBody:[aRequest responseString]];
+	authenticatedToken = [[[OAToken alloc] initWithHTTPResponseBody:[aRequest responseString]] autorelease];
 	
 	//If there is no request token
 	if( ![authenticatedToken key] ){
