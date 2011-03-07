@@ -12,4 +12,10 @@
 
 +(OAToken*) tokenWithURLQuery:(NSURL*) aURL;
 
+//Quick defaults
++(BOOL) hasDefaultTokenForService:(NSString*) serviceName;
+-(void) saveAsDefaultTokenForService:(NSString*) serviceName;
++(OAToken*) tokenDefaultForService:(NSString*) serviceName;
++(void) removeDefaultTokenForService:(NSString*) serviceName;
+
 @end

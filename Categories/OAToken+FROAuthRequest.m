@@ -21,4 +21,42 @@
 	return [[[self alloc] initWithHTTPResponseBody:query] autorelease];
 }
 
+//Establish if we have a default token for a given service
++(BOOL) hasDefaultTokenForService:(NSString*) serviceName{
+	
+	OAToken *token;
+	
+	token = [[[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:serviceName 
+																   prefix:@"default"
+			 ] autorelease];
+	
+	if( token != nil ){
+		return YES;
+	}
+	else{
+		return NO;
+	}
+}
+
+//Save a default token
+-(void) saveAsDefaultTokenForService:(NSString*) serviceName{
+	[self storeInUserDefaultsWithServiceProviderName:serviceName 
+											  prefix:@"default"
+	 ];
+}
+
+//Load a default token
++(OAToken*) tokenDefaultForService:(NSString*) serviceName{
+	return [[OAToken alloc] initWithUserDefaultsUsingServiceProviderName:serviceName 
+																  prefix:@"default"
+			];
+}
+
+//Clear a default token
++(void) removeDefaultTokenForService:(NSString*) serviceName{
+	[OAToken removeFromUserDefaultsWithServiceProviderName:serviceName
+													prefix:@"default"
+	 ];
+}
+
 @end
