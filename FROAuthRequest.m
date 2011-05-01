@@ -302,6 +302,7 @@
 {
 	if(!_timestamp) {
 		_timestamp = [NSString stringWithFormat:@"%d", time(NULL)];
+		[_timestamp retain];
 	}
 	
     return _timestamp;
@@ -503,10 +504,12 @@
 */
 	[_realm release];
 	
-	//[_nonce release];
+	// _nonce was created by CF functions, so use CFRelease in case we are in garbage collected environment
+	if (_nonce) {
+		CFRelease((CFStringRef) _nonce);
+	}
 	
-	// Cause a crash if if a nil check is done
-	//[_timestamp release];
+	[_timestamp release];
 
 	[_consumer release];
 	
